@@ -2,6 +2,8 @@ import requests
 from bs4 import BeautifulSoup as bs4
 import bs4 as bs
 
+EXAMPLE_NUMBER=3
+
 BASE_URL = "https://biblescan.com/searchgreek.php?q="
 # word_query = "καί" # str(input("Input a greek word:")) 
 
@@ -45,7 +47,19 @@ def get_entry_soup (ENTRY_LINK):
     soup = bs4(page.content, "html5lib")
     return soup
 
-def get_greek_examples(soup):
+def get_greek_concordance(soup):
+    strong_concordance = soup.find(id="leftbox")
+    strong_categories = strong_concordance.find_all("span", class_="tophdg")
+
+    strong_dict = {}
+    for item in strong_categories:
+        if "greek" in str(item.next_sibling):
+            strong_dict[item.text.strip().replace(":","")] = item.next_sibling.text.strip()
+        else:
+            strong_dict[item.text.strip().replace(":", "")] = item.next_sibling
+    return strong_dict
+
+def get_greek_examples(soup, number):
     """
     grabs greek examples for the given word, after its page has been retrived
     """
@@ -59,9 +73,9 @@ def get_greek_examples(soup):
             l.append(greek.text)
         except AttributeError:
             break
-    return l 
+    return l[:number] 
 
-def get_english_examples(soup):
+def get_english_examples(soup, number):
     """
     grabs english examples for the given word, after its page has been retrived
     """
@@ -88,11 +102,47 @@ def get_english_examples(soup):
         except AttributeError:
             break
         translations.append(current)
-    return translations
+    return translations[:number]
+
+def get_word_data(soup):
+    concordances = get_greek_concordance(soup)
+    greek_examples = get_greek_examples(soup,EXAMPLE_NUMBER)
+    english_examples = get_english_examples(soup,EXAMPLE_NUMBER)
+
+    return {
+        "concordances": concordances,
+        "examples": [(greek, english) for (greek, english) in zip(greek_examples, english_examples)]
+    }
+
+class Word:
+    def __init__(self, data_dict):
+        self.data = data_dict
+        self.concordances = self.data["concordances"]
+        self.name = self.concordances["Original Word"]
+        self.examples = self.data["examples"]
+    
+    def category(self):
+        return self.concordances["Part of Speech"]
+    
+    def transliteration(self):
+        return self.concordances["Transliteration"]
+
+    def category(self):
+        return self.concordances["Part of Speech"]
+
+    def phonetics(self):
+        return self.concordances["Phonetic Spelling"]
+
+    def definition(self):
+        return self.concordances["Definition"]
 
 
 if __name__ == "__main__": 
     link = get_link(BASE_URL, "καί")
     soup = get_entry_soup(link)
-    for item in zip(get_greek_examples(soup), get_english_examples(soup)):
-        print(item)
+    word = Word(get_word_data(soup))
+    print(word.definition())
+    print(word.category())
+    print(word.phonetics())
+    print(word.transliteration())
+    print(word.examples)
