@@ -5,3 +5,4 @@
 - TODO:
     - output everything to csv
     - enable input directly from csv
+    - refactor code to submit functions to class instead of the other way around
