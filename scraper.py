@@ -21,6 +21,7 @@ def get_summary(page):
 def get_link(BASE_URL, WORD_QUERY):
     """
     gets the link from a list of links in a query. Chooses the one which most resembles the given word.
+    **IT IS NECESSARY TO SHOW SOME WARNING IF ANOTHER WORD (other than the desired one) IS PICKED**
     """
     page = requests.get(BASE_URL+WORD_QUERY)
 
@@ -138,10 +139,11 @@ class Word:
 
 
 if __name__ == "__main__": 
-    link = get_link(BASE_URL, "καί")
+    link = get_link(BASE_URL, "καὶ")
     soup = get_entry_soup(link)
     word = Word(get_word_data(soup))
     print(word.definition())
+    print(word.name)
     print(word.category())
     print(word.phonetics())
     print(word.transliteration())

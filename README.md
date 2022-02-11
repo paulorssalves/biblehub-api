@@ -6,3 +6,4 @@
     - output everything to csv
     - enable input directly from csv
     - refactor code to submit functions to class instead of the other way around
+    - return some sort of warning if the word that is returned by the scraper is not exactly the word entered
