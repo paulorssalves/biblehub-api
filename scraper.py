@@ -1,6 +1,7 @@
 import requests
 from bs4 import BeautifulSoup as bs4
 import bs4 as bs
+import pandas as pd
 
 EXAMPLE_NUMBER=3
 
@@ -115,36 +116,69 @@ def get_word_data(soup):
         "examples": [(greek, english) for (greek, english) in zip(greek_examples, english_examples)]
     }
 
+def fetch_group_as_string(group, single_list=False):
+    """
+    Transforma grupo de strings em uma lista em uma só string.
+    Deste modo, o arquivo .csv final não fica cheio
+    de colchetes.
+    """
+
+    strings = ""
+    if single_list==True:
+        for i in range(len(group)): 
+            strings+=group[i]
+            if i < (len(group) - 1): 
+                strings+="\n\n"
+        return strings
+    else:
+        for i in range(len(group)):
+            for j in range(len(group[i])):
+                strings+=group[i][j]
+                if (j == 0):
+                    strings+="\n\n"
+                else:
+                    strings+="\n"
+            if (i < len(group)-1):
+                strings+="\n"
+
+        return strings
+
 class Word:
     def __init__(self, data_dict):
         self.data = data_dict
         self.concordances = self.data["concordances"]
         self.name = self.concordances["Original Word"]
         self.examples = self.data["examples"]
-    
-    def category(self):
-        return self.concordances["Part of Speech"]
-    
-    def transliteration(self):
-        return self.concordances["Transliteration"]
-
-    def category(self):
-        return self.concordances["Part of Speech"]
-
-    def phonetics(self):
-        return self.concordances["Phonetic Spelling"]
-
-    def definition(self):
-        return self.concordances["Definition"]
-
+        self.category = self.concordances["Part of Speech"]
+        self.transliteration = self.concordances["Transliteration"]
+        self.phonetics = self.concordances["Phonetic Spelling"]
+        self.definition = self.concordances["Definition"]
 
 if __name__ == "__main__": 
-    link = get_link(BASE_URL, "καὶ")
-    soup = get_entry_soup(link)
-    word = Word(get_word_data(soup))
-    print(word.definition())
-    print(word.name)
-    print(word.category())
-    print(word.phonetics())
-    print(word.transliteration())
-    print(word.examples)
+
+    REQUEST_NUMBER = 68
+
+    f = pd.read_csv("greek_words.csv", header=None,names=["word(s)"])
+
+    head = f.head(REQUEST_NUMBER)
+
+    for cell in head.iteritems():
+        for word in cell[1]:
+
+            link = get_link(BASE_URL, word)
+            soup = get_entry_soup(link)
+            word = Word(get_word_data(soup))
+            print (word.name)
+
+            dc = {
+                "word": word.name,
+                "phonetics": word.transliteration + "\n" + word.phonetics,
+                "category": word.category,
+                "meaning": word.definition,
+                "greek": fetch_group_as_string([tuple[0] for tuple in word.examples], single_list=True),
+                "english": fetch_group_as_string([tuple[1] for tuple in word.examples], single_list=True)
+            }
+
+            words_dataframe = pd.DataFrame.from_dict(dc, orient="index")
+            words_dataframe = words_dataframe.transpose()
+            words_dataframe.to_csv("output.csv",encoding="utf-8",mode="a",header=False, index=False) 
